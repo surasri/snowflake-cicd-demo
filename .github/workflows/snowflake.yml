@@ -1,0 +1,37 @@
+name: Snowflake CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SnowSQL
+        run: |
+          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.24-linux_x86_64.bash
+          bash snowsql-1.2.24-linux_x86_64.bash
+
+      - name: Create private key file
+        run: |
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > snowflake_key.p8
+          chmod 600 snowflake_key.p8
+
+      - name: Deploy SQL
+        run: |
+          for file in sql/*.sql; do
+            snowsql \
+              -a ${{ secrets.SNOWFLAKE_ACCOUNT }} \
+              -u ${{ secrets.SNOWFLAKE_USER }} \
+              -r ${{ secrets.SNOWFLAKE_ROLE }} \
+              -w ${{ secrets.SNOWFLAKE_WAREHOUSE }} \
+              -d ${{ secrets.SNOWFLAKE_DATABASE }} \
+              --private-key-path snowflake_key.p8 \
+              -f $file
+          done
