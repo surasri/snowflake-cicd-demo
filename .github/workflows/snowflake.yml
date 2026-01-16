@@ -10,28 +10,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: Install SnowSQL
       - name: Install SnowSQL
         run: |
           curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.24-linux_x86_64.bash
           bash snowsql-1.2.24-linux_x86_64.bash
+          export PATH=$PATH:$HOME/.snowsql/bin
 
-      - name: Create private key file
+      # Step 3: Debug repo and SnowSQL
+      - name: Debug
         run: |
-          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > snowflake_key.p8
+          echo "Listing repo files..."
+          ls -R
+          echo "SnowSQL version..."
+          snowsql --version
+
+      # Step 4: Create PKCS#8 private key file
+      - name: Create PKCS8 private key
+        run: |
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > snowflake_key.pem
+          openssl pkcs8 -topk8 -inform PEM -outform PEM -in snowflake_key.pem -out snowflake_key.p8 -nocrypt
           chmod 600 snowflake_key.p8
 
+      # Step 5: Deploy SQL files
       - name: Deploy SQL
         run: |
-          for file in sql/*.sql; do
-            snowsql \
-              -a ${{ secrets.SNOWFLAKE_ACCOUNT }} \
-              -u ${{ secrets.SNOWFLAKE_USER }} \
-              -r ${{ secrets.SNOWFLAKE_ROLE }} \
-              -w ${{ secrets.SNOWFLAKE_WAREHOUSE }} \
-              -d ${{ secrets.SNOWFLAKE_DATABASE }} \
-              --private-key-path snowflake_key.p8 \
-              -f $file
-          done
+          if [ -d "sql" ]; then
+            for file in sql/*.sql; do
+              echo "Executing $file..."
+              snowsql \
+                -a ${{ secrets.SNOWFLAKE_ACCOUNT }} \
+                -u ${{ secrets.SNOWFLAKE_USER }} \
+                -r ${{ secrets.SNOWFLAKE_ROLE }} \
+                -w ${{ secrets.SNOWFLAKE_WAREHOUSE }} \
+                -d ${{ secrets.SNOWFLAKE_DATABASE }} \
+                --private-key-path snowflake_key.p8 \
+                -f $file
+            done
+          else
+            echo "No SQL directory found. Skipping deployment."
+          fi
