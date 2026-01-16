@@ -2,13 +2,13 @@
 -- Initial objects for your project
 
 -- 1️⃣ Create the target schema if it doesn't exist
-CREATE SCHEMA IF NOT EXISTS DEMO;
+--CREATE SCHEMA IF NOT EXISTS DEMO;
 
 -- 2️⃣ Switch the session to the new schema
-USE SCHEMA DEMO;
+--USE SCHEMA DEMO;
 
 -- 3️⃣ Create tables safely (idempotent)
-CREATE TABLE IF NOT EXISTS FIRST_TABLE_CIDCC (
+CREATE TABLE IF NOT EXISTS FIRST_TABLE_CICD (
     FIRST_NAME VARCHAR(100),
     LAST_NAME VARCHAR(100)
 );
